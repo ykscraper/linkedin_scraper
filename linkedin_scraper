@@ -1,0 +1,93 @@
+from scrapling.fetchers import StealthyFetcher
+
+
+url = "https://www.linkedin.com/jobs/search-results/?currentJobId=4483653728&keywords=web%20devolper&origin=SEMANTIC_SEARCH_LANDING_PAGE&start=75"
+
+headers = {
+    "Accept": "text/html",
+    "Accept-Language": "en-US,en;q=0.9",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}
+
+page = Fetcher.get(
+    url,
+    headers=headers
+)
+
+print("Status:", page.status)
+print("Page URL:", url)
+
+# Search HTML element
+print(page.css("span[aria-hidden='true']").get())
+
+job_title = page.css("span.jkfa2y::text").get()
+print("Job Title:", job_title)
+
+html = page.text
+
+if "jkfa2y" in html:
+    print("Class exists")
+else:
+    print("Class NOT found")
+
+if "Web Developer" in html:
+    print("Job title exists")
+else:
+    print("Job title NOT found")
+
+position = html.find("Web Developer")
+print(html[position-500:position+1000])
+
+import json
+
+scripts = page.css(
+    'script[type="application/ld+json"]::text'
+).getall()
+
+def extract_jobs(data):
+
+    if isinstance(data, dict):
+
+        if data.get("@type") == "ListItem":
+
+            print("Job Title:", data.get("name"))
+            print("Company:", data.get("disambiguatingDescription"))
+            print("Location:", data.get("description"))
+            print("URL:", data.get("url"))
+            print("-" * 40)
+
+        for value in data.values():
+            extract_jobs(value)
+
+    elif isinstance(data, list):
+
+        for item in data:
+            extract_jobs(item)
+
+for script in scripts:
+    try:
+        data = json.loads(script)
+        extract_jobs(data)
+
+    except json.JSONDecodeError:
+        continue
+
+# Find Next button in returned HTML
+next_button = page.css(
+    'button[data-testid="pagination-controls-next-button-visible"]'
+)
+
+print("Next button:", next_button.get())
+
+print("HTML length:", len(page.text))
+next_btn = page.css(
+    '[data-testid="pagination-controls-next-button-visible"]'
+)
+print("Next button:", next_btn.get())
+
+print("HTML length:", len(page.text))
+
+print("JSON scripts:", len(scripts))
+print("HTML length:", len(page.text))
+print("Page URL:", page.url)
+print("Response:", page.status)
